@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { DateDisplay } from '@/components/DateDisplay'
 
 interface CallWithRelations {
   id: string
@@ -88,7 +89,7 @@ export default async function CallDetailPage({
             }`}>
               {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'}
             </span>
-            <span>{formatDate(new Date(call.started_at))}</span>
+            <span><DateDisplay date={call.started_at} format="long" /></span>
             {call.duration_seconds && (
               <span>{formatDuration(call.duration_seconds)}</span>
             )}
@@ -198,17 +199,6 @@ export default async function CallDetailPage({
       </div>
     </div>
   )
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
 }
 
 function formatDuration(seconds: number): string {

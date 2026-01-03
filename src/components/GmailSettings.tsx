@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { DateDisplay } from './DateDisplay'
 
 interface GmailIntegration {
   account_id: string
@@ -113,7 +114,7 @@ export function GmailSettings({
 
       {integration.last_sync_at && (
         <p className="text-sm text-muted-foreground">
-          Last synced: {new Date(integration.last_sync_at).toLocaleString()}
+          Last synced: <DateDisplay date={integration.last_sync_at} format="short" />
         </p>
       )}
 

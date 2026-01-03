@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { DateDisplay } from '@/components/DateDisplay'
 
 interface CallListItem {
   id: string
@@ -94,7 +95,7 @@ export default async function CallsPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground">
-                    {formatDate(new Date(call.started_at))}
+                    <DateDisplay date={call.started_at} format="short" />
                   </div>
                   <div className="text-sm text-muted-foreground flex items-center gap-2 justify-end">
                     {call.duration_seconds && (
@@ -112,15 +113,6 @@ export default async function CallsPage() {
       )}
     </div>
   )
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
 }
 
 function formatDuration(seconds: number): string {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { google } from 'googleapis'
-import { extractEmailAddress, normalizeEmail, isNewsletter } from '@/lib/utils/email'
+import { extractEmailAddress, normalizeEmail, isNewsletter, isNoReplyEmail } from '@/lib/utils/email'
 import { extractPhoneNumbers } from '@/lib/utils/phone'
 import { processExtraction } from '@/app/api/twilio/recording/route'
 
@@ -121,14 +121,27 @@ export async function POST() {
         const subject = headers['Subject'] || ''
         const date = headers['Date'] || ''
 
+        // Extract email from "From" header for better filtering
+        const fromEmail = extractEmailAddress(from)
+        
         // Skip newsletters and automated emails
         if (isNewsletter(headers, from, subject)) {
+          continue
+        }
+
+        // Additional check: skip if from email looks like a service/automated email
+        if (isNoReplyEmail(fromEmail)) {
           continue
         }
 
         // Skip if too many recipients (likely a mass email)
         const toAddresses = to.split(',').map(e => extractEmailAddress(e.trim()))
         if (toAddresses.length > 5) {
+          continue
+        }
+
+        // Skip if subject is empty or very short (likely automated)
+        if (!subject || subject.trim().length < 3) {
           continue
         }
 
@@ -168,8 +181,9 @@ export async function POST() {
 
         if (!participantEmail) continue
 
-        // Find or create customer
-        let customerId: string
+        // Find existing customer (only enrich, don't create new ones)
+        // Customers should only be created from phone calls
+        let customerId: string | null = null
 
         // Try to find by email
         const { data: existingEmail } = await adminDb
@@ -184,7 +198,6 @@ export async function POST() {
         } else {
           // Try to find by phone in email body/signature
           const phones = extractPhoneNumbers(bodyText)
-          let foundByPhone = false
 
           for (const phone of phones) {
             const { data: existingPhone } = await adminDb
@@ -196,48 +209,26 @@ export async function POST() {
 
             if (existingPhone) {
               customerId = existingPhone.customer_id
-              foundByPhone = true
 
-              // Also add this email to the customer (ignore if already exists)
+              // Add this email to the existing customer
               await adminDb
                 .from('customer_emails')
-                .upsert({
+                .insert({
                   account_id: profile.account_id,
                   customer_id: customerId,
                   email_lower: normalizeEmail(participantEmail),
-                }, { onConflict: 'account_id, email_lower', ignoreDuplicates: true })
+                })
+                .onConflict(['account_id', 'email_lower'])
+                .doNothing()
 
               break
             }
           }
 
-          if (!foundByPhone) {
-            // Create new customer
-            const { data: newCustomer, error: customerError } = await adminDb
-              .from('customers')
-              .insert({
-                account_id: profile.account_id,
-                display_name: extractNameFromEmail(from),
-                last_interaction_at: new Date(date).toISOString(),
-              })
-              .select()
-              .single()
-
-            if (customerError || !newCustomer) {
-              console.error('[Gmail Sync] Failed to create customer:', customerError)
-              continue
-            }
-
-            customerId = newCustomer.id
-
-            // Add email
-            await adminDb
-              .from('customer_emails')
-              .insert({
-                account_id: profile.account_id,
-                customer_id: customerId,
-                email_lower: normalizeEmail(participantEmail),
-              })
+          // If no existing customer found, skip this email
+          // Customers should only be created from phone calls, not emails
+          if (!customerId) {
+            continue
           }
         }
 
@@ -246,7 +237,7 @@ export async function POST() {
         await adminDb
           .from('customers')
           .update({ last_interaction_at: emailDate.toISOString() })
-          .eq('id', customerId!)
+          .eq('id', customerId)
           .lt('last_interaction_at', emailDate.toISOString())
 
         // Save email
@@ -254,7 +245,7 @@ export async function POST() {
           .from('emails')
           .insert({
             account_id: profile.account_id,
-            customer_id: customerId!,
+            customer_id: customerId,
             gmail_message_id: msg.id!,
             thread_id: fullMessage.threadId || null,
             direction,
@@ -278,14 +269,14 @@ export async function POST() {
           const { data: customer } = await adminDb
             .from('customers')
             .select('id, summary')
-            .eq('id', customerId!)
+            .eq('id', customerId)
             .single()
 
           await processExtraction(
             {
               id: savedEmail.id,
               account_id: profile.account_id,
-              customer_id: customerId!,
+              customer_id: customerId,
               customers: customer,
             },
             `Subject: ${subject}\n\n${bodyText}`,

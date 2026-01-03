@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { FollowUpActions } from '@/components/FollowUpActions'
+import { DateDisplay } from '@/components/DateDisplay'
+import { DeleteCustomerButton } from '@/components/DeleteCustomerButton'
 
 interface CustomerWithRelations {
   id: string
@@ -129,34 +131,40 @@ export default async function CustomerPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/dashboard"
-          className="p-2 rounded-lg hover:bg-accent transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-            {customer.display_name?.charAt(0)?.toUpperCase() || '?'}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {customer.display_name || 'Unknown Customer'}
-            </h1>
-            <div className="flex items-center gap-4 text-muted-foreground text-sm">
-              {customer.company && <span>{customer.company}</span>}
-              {customer.customer_phones?.[0] && (
-                <span>{customer.customer_phones[0].phone_e164}</span>
-              )}
-              {customer.customer_emails?.[0] && (
-                <span>{customer.customer_emails[0].email_lower}</span>
-              )}
+          <Link
+            href="/dashboard"
+            className="p-2 rounded-lg hover:bg-accent transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
+              {customer.display_name?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {customer.display_name || 'Unknown Customer'}
+              </h1>
+              <div className="flex items-center gap-4 text-muted-foreground text-sm">
+                {customer.company && <span>{customer.company}</span>}
+                {customer.customer_phones?.[0] && (
+                  <span>{customer.customer_phones[0].phone_e164}</span>
+                )}
+                {customer.customer_emails?.[0] && (
+                  <span>{customer.customer_emails[0].email_lower}</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
+        <DeleteCustomerButton 
+          customerId={customer.id} 
+          customerName={customer.display_name || 'this customer'} 
+        />
       </div>
 
       {/* Pre-call Brief Card */}
@@ -178,7 +186,7 @@ export default async function CustomerPage({
               {customer.last_interaction_at && (
                 <div className="bg-background/50 rounded-lg p-3">
                   <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Last Contact</div>
-                  <div className="font-medium">{formatDate(new Date(customer.last_interaction_at))}</div>
+                  <div className="font-medium"><DateDisplay date={customer.last_interaction_at} format="short" /></div>
                 </div>
               )}
 
@@ -201,7 +209,7 @@ export default async function CustomerPage({
                   Suggested Next Actions
                 </h3>
                 <ul className="space-y-2">
-                  {followUps.map(fu => (
+                  {followUps.map((fu: { id: string; suggestion: string; created_at: string }) => (
                     <li key={fu.id} className="flex items-start gap-3 bg-background/50 rounded-lg p-3">
                       <div className="flex-1 text-sm">{fu.suggestion}</div>
                       <FollowUpActions followUpId={fu.id} />
@@ -338,7 +346,7 @@ function CallTimelineItem({ call }: { call: CallWithTranscript }) {
           {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'} Call
         </span>
         <span className="text-muted-foreground">
-          {formatDate(new Date(call.started_at))}
+          <DateDisplay date={call.started_at} format="short" />
         </span>
         {call.duration_seconds && (
           <span className="text-muted-foreground">
@@ -370,7 +378,7 @@ function EmailTimelineItem({ email }: { email: EmailData }) {
           {email.direction === 'received' ? 'Received' : 'Sent'} Email
         </span>
         <span className="text-muted-foreground">
-          {formatDate(new Date(email.sent_at || email.created_at))}
+          <DateDisplay date={email.sent_at || email.created_at} format="short" />
         </span>
       </div>
       {email.subject && (
@@ -383,16 +391,6 @@ function EmailTimelineItem({ email }: { email: EmailData }) {
       )}
     </div>
   )
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
 }
 
 function formatDuration(seconds: number): string {

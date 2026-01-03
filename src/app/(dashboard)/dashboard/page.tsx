@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { CustomerSearch } from '@/components/CustomerSearch'
+import { DateDisplay } from '@/components/DateDisplay'
 
 interface CustomerListItem {
   id: string
@@ -126,7 +127,7 @@ export default async function DashboardPage({
                 
                 {customer.last_interaction_at && (
                   <div className="text-sm text-muted-foreground">
-                    {formatRelativeDate(new Date(customer.last_interaction_at))}
+                    <DateDisplay date={customer.last_interaction_at} format="relative" />
                   </div>
                 )}
               </div>
@@ -144,15 +145,4 @@ export default async function DashboardPage({
   )
 }
 
-function formatRelativeDate(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays} days ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-  return date.toLocaleDateString()
-}
 

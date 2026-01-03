@@ -69,6 +69,29 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Determine call direction
+    const direction = Direction?.toLowerCase()?.includes('inbound') ? 'inbound' : 'outbound'
+    
+    // For inbound: caller is "From", for outbound: called party is "To"
+    const customerPhoneNumber = direction === 'inbound' ? fromNormalized : toNormalized
+
+    // Check if this number is blocked (personal contact)
+    const { data: blockedNumber } = await supabase
+      .from('blocked_numbers')
+      .select('id')
+      .eq('account_id', accountId)
+      .eq('phone_e164', customerPhoneNumber)
+      .single()
+
+    if (blockedNumber) {
+      console.log('[Twilio Voice] Blocked number, skipping customer creation:', customerPhoneNumber)
+      // Still return TwiML to handle the call, but don't create customer
+      return new NextResponse(generateTwiml('Call connected'), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      })
+    }
+
     // Find or create customer
     let customerId: string
 
@@ -76,7 +99,7 @@ export async function POST(request: NextRequest) {
       .from('customer_phones')
       .select('customer_id')
       .eq('account_id', accountId)
-      .eq('phone_e164', fromNormalized)
+      .eq('phone_e164', customerPhoneNumber)
       .single()
 
     if (existingPhone) {
@@ -109,7 +132,7 @@ export async function POST(request: NextRequest) {
         .insert({
           account_id: accountId,
           customer_id: customerId,
-          phone_e164: fromNormalized,
+          phone_e164: customerPhoneNumber,
         })
     }
 
@@ -128,8 +151,6 @@ export async function POST(request: NextRequest) {
 
     if (!existingCall) {
       // Create call record
-      const direction = Direction?.toLowerCase()?.includes('inbound') ? 'inbound' : 'outbound'
-      
       await supabase
         .from('calls')
         .insert({
