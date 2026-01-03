@@ -56,6 +56,18 @@ export async function POST() {
       refresh_token: gmailIntegration.google_refresh_token,
     })
 
+    // Refresh the access token to ensure we have the right scopes
+    try {
+      const { credentials } = await oauth2Client.refreshAccessToken()
+      oauth2Client.setCredentials(credentials)
+    } catch (refreshError) {
+      console.error('[Gmail Sync] Token refresh error:', refreshError)
+      return NextResponse.json(
+        { error: 'Gmail connection expired. Please disconnect and reconnect Gmail in Settings.' },
+        { status: 401 }
+      )
+    }
+
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
 
     // Calculate query - get messages from last sync or last 7 days

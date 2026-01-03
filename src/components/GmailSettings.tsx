@@ -55,13 +55,40 @@ export function GmailSettings({
   if (!integration?.google_email) {
     return (
       <div className="space-y-4">
-        <p className="text-muted-foreground text-sm">
-          Connect your Gmail account to automatically sync customer emails.
-          We only request read-only access to your inbox.
-        </p>
+        <div className="bg-accent rounded-lg p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium mb-1">How it works</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Click "Connect Gmail" below</li>
+                <li>Sign in with your Google account</li>
+                <li>Grant read-only access to your inbox</li>
+                <li>We'll automatically sync customer emails</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+          <p className="text-sm text-blue-400 flex items-start gap-2">
+            <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>
+              <strong>Privacy:</strong> We only request read-only access. We never send emails or modify your inbox. 
+              You can disconnect anytime.
+            </span>
+          </p>
+        </div>
+
         <button
           onClick={handleConnect}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-gray-800 font-medium hover:bg-gray-100 transition-colors"
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white text-gray-800 font-medium hover:bg-gray-100 transition-colors shadow-sm"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
