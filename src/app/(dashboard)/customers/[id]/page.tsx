@@ -14,7 +14,6 @@ interface CustomerWithRelations {
   last_interaction_at: string | null
   created_at: string
   customer_phones: Array<{ phone_e164: string }>
-  customer_emails: Array<{ email_lower: string }>
 }
 
 interface CallWithTranscript {
@@ -22,16 +21,8 @@ interface CallWithTranscript {
   direction: 'inbound' | 'outbound'
   started_at: string
   duration_seconds: number | null
+  summary: string | null
   transcripts: Array<{ raw_text: string }>
-}
-
-interface EmailData {
-  id: string
-  direction: 'sent' | 'received'
-  sent_at: string | null
-  created_at: string
-  subject: string | null
-  body_snippet: string | null
 }
 
 export default async function CustomerPage({
@@ -47,8 +38,7 @@ export default async function CustomerPage({
     .from('customers')
     .select(`
       *,
-      customer_phones(phone_e164),
-      customer_emails(email_lower)
+      customer_phones(phone_e164)
     `)
     .eq('id', id)
     .single()
@@ -96,37 +86,20 @@ export default async function CustomerPage({
     .order('started_at', { ascending: false })
     .limit(10)
 
-  // Fetch recent emails
-  const { data: emails } = await supabase
-    .from('emails')
-    .select('*')
-    .eq('customer_id', id)
-    .order('sent_at', { ascending: false })
-    .limit(10)
-
   // Group memories by type
   const personalFacts = memories?.filter(m => m.type === 'personal') || []
   const businessContext = memories?.filter(m => m.type === 'business') || []
   const commitments = memories?.filter(m => m.type === 'commitment') || []
 
-  // Build timeline
+  // Build timeline (calls only)
   const callsTyped = (calls || []) as unknown as CallWithTranscript[]
-  const emailsTyped = (emails || []) as unknown as EmailData[]
 
-  const timeline = [
-    ...callsTyped.map(call => ({
-      type: 'call' as const,
-      id: call.id,
-      date: new Date(call.started_at),
-      data: call,
-    })),
-    ...emailsTyped.map(email => ({
-      type: 'email' as const,
-      id: email.id,
-      date: new Date(email.sent_at || email.created_at),
-      data: email,
-    })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime())
+  const timeline = callsTyped.map(call => ({
+    type: 'call' as const,
+    id: call.id,
+    date: new Date(call.started_at),
+    data: call,
+  })).sort((a, b) => b.date.getTime() - a.date.getTime())
 
   return (
     <div className="space-y-6">
@@ -149,15 +122,12 @@ export default async function CustomerPage({
               <h1 className="text-2xl font-bold tracking-tight">
                 {customer.display_name || 'Unknown Customer'}
               </h1>
-              <div className="flex items-center gap-4 text-muted-foreground text-sm">
-                {customer.company && <span>{customer.company}</span>}
-                {customer.customer_phones?.[0] && (
-                  <span>{customer.customer_phones[0].phone_e164}</span>
-                )}
-                {customer.customer_emails?.[0] && (
-                  <span>{customer.customer_emails[0].email_lower}</span>
-                )}
-              </div>
+            <div className="flex items-center gap-4 text-muted-foreground text-sm">
+              {customer.company && <span>{customer.company}</span>}
+              {customer.customer_phones?.[0] && (
+                <span>{customer.customer_phones[0].phone_e164}</span>
+              )}
+            </div>
             </div>
           </div>
         </div>
@@ -221,7 +191,7 @@ export default async function CustomerPage({
           </div>
         ) : (
           <p className="text-muted-foreground">
-            No interaction data yet. Brief will appear after calls or emails are processed.
+            No interaction data yet. Brief will appear after calls are processed.
           </p>
         )}
       </div>
@@ -282,11 +252,7 @@ export default async function CustomerPage({
               <div className="space-y-4">
                 {timeline.map((item) => (
                   <div key={`${item.type}-${item.id}`} className="border-l-2 border-border pl-4 py-2">
-                    {item.type === 'call' ? (
-                      <CallTimelineItem call={item.data} />
-                    ) : (
-                      <EmailTimelineItem email={item.data} />
-                    )}
+                    <CallTimelineItem call={item.data} />
                   </div>
                 ))}
               </div>
@@ -354,41 +320,26 @@ function CallTimelineItem({ call }: { call: CallWithTranscript }) {
           </span>
         )}
       </div>
-      {call.transcripts?.[0]?.raw_text && (
+      {call.summary ? (
+        <div className="mt-2">
+          <p className="text-sm font-medium text-foreground">{call.summary}</p>
+          {call.transcripts?.[0]?.raw_text && (
+            <Link 
+              href={`/calls/${call.id}`}
+              className="text-xs text-muted-foreground mt-1 hover:text-foreground transition-colors inline-block"
+            >
+              View full transcript →
+            </Link>
+          )}
+        </div>
+      ) : call.transcripts?.[0]?.raw_text ? (
         <Link 
           href={`/calls/${call.id}`}
           className="text-sm text-muted-foreground mt-1 line-clamp-2 hover:text-foreground transition-colors block"
         >
           {call.transcripts[0].raw_text.slice(0, 200)}...
         </Link>
-      )}
-    </div>
-  )
-}
-
-function EmailTimelineItem({ email }: { email: EmailData }) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 text-sm">
-        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-          email.direction === 'received' 
-            ? 'bg-purple-500/10 text-purple-400' 
-            : 'bg-orange-500/10 text-orange-400'
-        }`}>
-          {email.direction === 'received' ? 'Received' : 'Sent'} Email
-        </span>
-        <span className="text-muted-foreground">
-          <DateDisplay date={email.sent_at || email.created_at} format="short" />
-        </span>
-      </div>
-      {email.subject && (
-        <p className="text-sm font-medium mt-1">{email.subject}</p>
-      )}
-      {email.body_snippet && (
-        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-          {email.body_snippet}
-        </p>
-      )}
+      ) : null}
     </div>
   )
 }

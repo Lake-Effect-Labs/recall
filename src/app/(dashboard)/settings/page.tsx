@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { TwilioSettings } from '@/components/TwilioSettings'
-import { GmailSettings } from '@/components/GmailSettings'
 import { AccountSettings } from '@/components/AccountSettings'
 import { BlockedNumbers } from '@/components/BlockedNumbers'
 
@@ -15,12 +14,6 @@ interface TwilioIntegration {
   twilio_account_sid: string
   twilio_auth_token: string
   twilio_phone_e164: string
-}
-
-interface GmailIntegration {
-  account_id: string
-  google_email: string | null
-  last_sync_at: string | null
 }
 
 export default async function SettingsPage() {
@@ -39,13 +32,6 @@ export default async function SettingsPage() {
     .single()
 
   const twilioIntegration = twilioData as unknown as TwilioIntegration | null
-
-  const { data: gmailData } = await supabase
-    .from('integrations_gmail')
-    .select('*')
-    .single()
-
-  const gmailIntegration = gmailData as unknown as GmailIntegration | null
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -81,17 +67,6 @@ export default async function SettingsPage() {
           accountId={profile?.account_id || ''}
           webhookUrl={`${process.env.NEXT_PUBLIC_APP_URL}/api/twilio/voice`}
         />
-      </section>
-
-      {/* Gmail Integration */}
-      <section className="bg-card rounded-xl border p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-          Gmail (Email Sync)
-        </h2>
-        <GmailSettings integration={gmailIntegration} />
       </section>
 
       {/* Blocked Numbers */}

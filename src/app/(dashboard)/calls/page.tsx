@@ -9,6 +9,7 @@ interface CallListItem {
   to_phone: string
   started_at: string
   duration_seconds: number | null
+  summary: string | null
   customers: {
     display_name: string | null
     company: string | null
@@ -80,7 +81,7 @@ export default async function CallsPage() {
                       )}
                     </svg>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <div className="font-medium">
                       {call.customers?.display_name || call.from_phone}
                     </div>
@@ -91,6 +92,11 @@ export default async function CallsPage() {
                       <span>•</span>
                       <span>{call.from_phone} → {call.to_phone}</span>
                     </div>
+                    {call.summary && (
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        {call.summary}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">

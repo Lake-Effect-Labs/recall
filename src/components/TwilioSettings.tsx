@@ -66,9 +66,15 @@ export function TwilioSettings({
           Connected: {integration.twilio_phone_e164}
         </div>
       ) : (
-        <p className="text-muted-foreground text-sm">
-          Connect your Twilio account to receive and record phone calls.
-        </p>
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-sm">
+            Connect your Twilio account to receive and record phone calls.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            <strong>Recommended:</strong> Get a new Twilio number and use it directly. 
+            Alternatively, you can forward your existing number to a Twilio number.
+          </p>
+        </div>
       )}
 
       <div className="space-y-4">

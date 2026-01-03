@@ -1,14 +1,13 @@
 # Recall - AI Relationship Memory Assistant
 
-Recall is an AI-powered customer relationship memory assistant that automatically builds customer profiles from phone calls and emails, providing a pre-interaction brief before every customer touchpoint.
+Recall is an AI-powered customer relationship memory assistant that automatically builds customer profiles from phone calls, providing a pre-interaction brief before every customer touchpoint.
 
 ## Features
 
 - **Automatic Call Recording & Transcription**: Twilio integration captures calls, Whisper API transcribes them
-- **Gmail Sync**: Read-only Gmail integration to import customer emails
 - **AI-Powered Extraction**: GPT-4o-mini extracts personal facts, business context, commitments, and follow-ups
 - **Pre-Call Briefs**: See a summary of who the customer is, what matters, and suggested actions
-- **Unified Customer Profiles**: Calls and emails linked to customer profiles with phone/email matching
+- **Unified Customer Profiles**: Calls automatically linked to customer profiles with phone number matching
 - **Multi-Tenant Security**: Row Level Security ensures complete data isolation between accounts
 
 ## Tech Stack
@@ -20,7 +19,6 @@ Recall is an AI-powered customer relationship memory assistant that automaticall
 - **Voice**: Twilio (calls, recordings, webhooks)
 - **Transcription**: OpenAI Whisper API
 - **AI Extraction**: OpenAI GPT-4o-mini
-- **Email**: Gmail API (read-only)
 
 ## Setup
 
@@ -50,10 +48,6 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 # OpenAI
 OPENAI_API_KEY=sk-your-openai-key
 
-# Google OAuth (for Gmail)
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
 # App URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -75,24 +69,16 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ### 4. Twilio Setup
 
 1. Create a Twilio account at https://twilio.com
-2. Get a phone number with Voice capabilities
+2. Get a phone number with Voice capabilities (recommended: use this number directly)
 3. In your phone number settings:
    - Set the webhook URL for incoming calls to: `https://your-domain.com/api/twilio/voice`
    - Method: POST
 4. Note your Account SID and Auth Token
 5. In Recall settings, enter your Twilio credentials
 
-### 5. Google OAuth Setup (for Gmail)
+**Note:** You can use the Twilio number directly, or forward your existing number to it. Using the Twilio number directly is recommended for simplicity.
 
-1. Go to Google Cloud Console: https://console.cloud.google.com
-2. Create a new project
-3. Enable the Gmail API and People API
-4. Create OAuth 2.0 credentials:
-   - Application type: Web application
-   - Authorized redirect URIs: `http://localhost:3000/api/gmail/callback` (and your production URL)
-5. Add the Client ID and Secret to your `.env.local`
-
-### 6. Run Development Server
+### 5. Run Development Server
 
 ```bash
 npm run dev
@@ -120,21 +106,20 @@ Then call your Twilio number. The call will be recorded, transcribed, and insigh
 1. **Call comes in** → Twilio webhook creates customer (if new) and call record
 2. **Recording completes** → Webhook triggers transcription via Whisper
 3. **Transcription done** → GPT-4o-mini extracts facts, commitments, follow-ups
-4. **Email sync** → Gmail API fetches emails, links to customers by email/phone
-5. **Customer profile** → Shows unified timeline + pre-call brief
+4. **Customer profile** → Shows call timeline + pre-call brief
 
 ### Database Schema
 
 - `accounts` - Multi-tenant accounts
 - `profiles` - Maps auth users to accounts
 - `customers` - Customer records
-- `customer_phones` / `customer_emails` - Contact info (for matching)
+- `customer_phones` - Contact info (phone numbers)
 - `calls` - Call records with Twilio metadata
 - `transcripts` - Whisper transcriptions
-- `emails` - Synced Gmail messages
 - `memories` - Extracted facts (personal/business/commitment)
 - `follow_ups` - Suggested actions
-- `integrations_gmail` / `integrations_twilio` - Per-account credentials
+- `integrations_twilio` - Per-account Twilio credentials
+- `blocked_numbers` - Personal contacts to exclude from tracking
 
 ### Security
 
@@ -153,14 +138,14 @@ vercel
 
 Set all environment variables in Vercel dashboard.
 
-**Important**: Update `NEXT_PUBLIC_APP_URL` to your production URL and update your Twilio/Google OAuth redirect URLs.
+**Important**: Update `NEXT_PUBLIC_APP_URL` to your production URL and update your Twilio webhook URL.
 
 ## Cost Considerations
 
 - **Whisper**: ~$0.006 per minute of audio
 - **GPT-4o-mini**: ~$0.15 per 1M input tokens, $0.60 per 1M output tokens
 - **Twilio**: ~$0.0085 per minute for recording + standard call rates
-- Extraction runs once per call/email (idempotent)
+- Extraction runs once per call (idempotent)
 - Long transcripts are truncated to reduce token usage
 
 ## License

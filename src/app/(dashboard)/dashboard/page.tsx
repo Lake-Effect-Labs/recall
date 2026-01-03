@@ -10,7 +10,6 @@ interface CustomerListItem {
   summary: string | null
   last_interaction_at: string | null
   customer_phones: Array<{ phone_e164: string }>
-  customer_emails: Array<{ email_lower: string }>
 }
 
 export default async function DashboardPage({
@@ -21,19 +20,18 @@ export default async function DashboardPage({
   const { q } = await searchParams
   const supabase = await createClient()
 
-  // Get customers with their phone and email counts
+  // Get customers with their phone numbers
   let query = supabase
     .from('customers')
     .select(`
       *,
-      customer_phones(phone_e164),
-      customer_emails(email_lower)
+      customer_phones(phone_e164)
     `)
     .order('last_interaction_at', { ascending: false, nullsFirst: false })
     .limit(50)
 
   if (q) {
-    // Search by name, company, phone, or email
+    // Search by name, company, or phone
     query = query.or(`display_name.ilike.%${q}%,company.ilike.%${q}%`)
   }
 
@@ -67,7 +65,7 @@ export default async function DashboardPage({
           <p className="text-muted-foreground max-w-md mx-auto">
             {q 
               ? `No customers found matching "${q}"`
-              : 'Customers will appear here automatically when they call you or you sync emails. Set up Twilio and Gmail integrations in Settings to get started.'
+              : 'Customers will appear here automatically when they call you. Set up Twilio integration in Settings to get started.'
             }
           </p>
           {!q && (
@@ -111,14 +109,6 @@ export default async function DashboardPage({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                           </svg>
                           {customer.customer_phones[0].phone_e164}
-                        </span>
-                      )}
-                      {customer.customer_emails && customer.customer_emails.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                          {customer.customer_emails[0].email_lower}
                         </span>
                       )}
                     </div>

@@ -30,9 +30,28 @@ Regular phone carriers (Verizon, AT&T, etc.) don't:
 
 **This is why you need Twilio** - it's the bridge between phone calls and your app.
 
-## Solutions: Using Your Existing Number
+## Solutions: Getting Started
 
-### Option 1: Call Forwarding (Recommended) ✅
+### Option 1: Use Twilio Number Directly (Recommended) ✅
+
+**Get a new Twilio number and use it as your business number:**
+
+1. Get a Twilio phone number
+2. Use this number for all business calls
+3. Give this number to customers
+4. Everything works automatically!
+
+**Pros:**
+- Simplest setup
+- Works immediately
+- No forwarding delays
+- Full control
+
+**Cons:**
+- New number (customers need to update if you have existing number)
+- May need to update business cards/website
+
+### Option 2: Call Forwarding (If You Must Keep Existing Number)
 
 **Forward your regular number to your Twilio number:**
 
@@ -51,13 +70,14 @@ Regular phone carriers (Verizon, AT&T, etc.) don't:
 **Pros:**
 - Keep your existing phone number
 - Works with any carrier
-- No changes needed to your app
+- Customers see your original number
 
 **Cons:**
-- You need to answer on the Twilio number (or set up more forwarding)
-- May have slight delay
+- Slight forwarding delay
+- Need to answer on Twilio number (or forward back)
+- More complex setup
 
-### Option 2: Port Your Number to Twilio
+### Option 3: Port Your Number to Twilio (Advanced)
 
 You can port (transfer) your existing phone number to Twilio:
 

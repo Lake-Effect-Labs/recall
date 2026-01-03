@@ -160,7 +160,7 @@ export async function processExtraction(
     customers?: { id: string; summary: string | null } | null
   },
   text: string,
-  source: 'call' | 'email'
+  source: 'call'
 ) {
   const supabase = createAdminClient()
 
@@ -217,6 +217,14 @@ export async function processExtraction(
           source,
           source_id: item.id,
         })
+    }
+
+    // Save call summary (meeting notes)
+    if (source === 'call') {
+      await supabase
+        .from('calls')
+        .update({ summary: extraction.summary })
+        .eq('id', item.id)
     }
 
     // Update customer summary
